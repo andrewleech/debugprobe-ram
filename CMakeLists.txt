@@ -72,6 +72,7 @@ target_link_libraries(debugprobe PRIVATE
         FreeRTOS-Kernel-Heap1
 )
 
-pico_set_binary_type(debugprobe copy_to_ram)
+# Set this to build for direct-load-to-ram, don't install to flash.
+pico_set_binary_type(debugprobe no_flash)
 
 pico_add_extra_outputs(debugprobe)
