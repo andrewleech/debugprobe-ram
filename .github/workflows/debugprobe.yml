@@ -1,0 +1,73 @@
+name: debugprobe-ram
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: micropython/build-micropython-arm
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B build -DPICO_SDK_PATH=$(pwd)/pico-sdk
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debugprobe.uf2
+        path: |
+          build/debugprobe.uf2
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+  
+    - name: Release
+      if: startsWith(github.ref, 'refs/tags/')
+      # uses: actions/create-release@v1
+      # with:
+      #   draft: false
+      #   prerelease: false
+      #   release_name: Release ${{ github.ref }}
+      #   tag_name: ${{ github.ref }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        ls debugprobe.uf2
+        gh release create ${{ github.ref }} 'debugprobe.uf2/debugprobe.uf2#debugprobe.uf2'
+
+    # - name: release
+    #   uses: actions/create-release@v1
+    #   id: create_release
+    #   with:
+    #     draft: false
+    #     prerelease: false
+    #     release_name: ${{ steps.version.outputs.version }}
+    #     tag_name: ${{ github.ref }}
+    #     body_path: CHANGELOG.md
+    #   env:
+    #     GITHUB_TOKEN: ${{ github.token }}
